@@ -2,81 +2,65 @@
 <html lang="es">
 <head>
 	<title>Zoomzone</title>
-		<meta charset="utf-8">
+	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<meta name="Keywords" content="webMarketCamp,importadora, distribuidora, articulos, fotografia, camaras, tripodes, flashes, filtros, accesores, fotografia Madrid ">
+	<meta name="Keywords" content="webMarketCamp,importadora, distribuidora, articulos, fotografia, camaras, tripodes, flashes, filtros, accesores, fotografia Madrid">
 	<meta name="Description" content="Empresa importadora y distribuidora de articulos para fotografos, desde camaras, tripodes, flashes, filtros y todo tipo de accesorios.">
 	
 	<meta name="Author" content="Vanesa Martinez Marin">
 	<meta name="Copyright" content="Derechos reservados">
 	<meta name="robots" content="index, follow">
-<!--links de bootstrap y estilo del sitio  -->
+
+	<!--links de bootstrap y estilo del sitio  -->
 	<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
 	<link rel="stylesheet" type="text/css" href="css/style.css">
 </head>
 <body>
-<?php 
-        include "header.html";
-     ?>
+<?php
+// Incluir el archivo de conexión a la base de datos
+include "conexion.php";
 
-<main class="container" id="contenido">
- 
-<section id="empty" class="row clearfix"></section>
+// Verificar y asignar un valor predeterminado para $_GET["categoriaID"]
+$categor = isset($_GET["categoriaID"]) ? $_GET["categoriaID"] : "0";
 
+// Determinar criterio de ordenación
+if (isset($_GET["ORD"])) {
+    // Capturar orden
+    $orden = $_GET["ORD"];    
+} else {
+    $orden = "idP";
+}
 
+// Determinar filtro
+if ($categor == "0" || $categor == "undefined") {
+    $filtro = '';
+} else {
+    $filtro = "WHERE idC = '$categor'";
+}
 
-	<section id="Bienvenida" class="row">
-				<article class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-		 				<div class="list-group">
-						<div class="thumbnail">
-							<h1 class="list-group-item discret list-group-item-heading   text-center">Consultar Productos</h1>
-							 
-		 					<div class="panel-body">
-		 					<h2>Consulte Producto</h2>
-								
-								<table class="table table-responsive table-striped table-bordered table-hover" id="lst">
-                                <?php
-    // conectar al servidor de BD
-    include "conexion.php";
-    // determinar criterio de ordenación
-    if (isset($_GET["ORD"])) {
-        // capturar orden
-        $orden = $_GET["ORD"];    
-    } else {
-        $orden = "idP";
-    } // endif
-    // capturar filtro
-    $categor = $_GET["categoriaID"];
-    echo("<script>console.log('PHP: ".$categor."');</script>");
-    
-    // determinar filtro        
-    if ($categor == "0" || $categor == "undefined") {
-        $filtro =''; 
-    } else {
-        $filtro = "WHERE idC ='$categor'";
-    } // endif
-    // crear sentencia SQL
-    $sql  = "SELECT productos.idP, productos.marca, productos.descripcion, productos.origen, productos.precio, categoria.nombre ";
-    $sql .= "FROM productos ";
-    $sql .= "JOIN categoria ";
-    $sql .= "ON productos.categoria = categoria.idC ";
-    if (isset($filtro)) {
-        // agregamos filtro 
-        $sql .= " $filtro "; 
-    }
-    $sql .= "ORDER BY $orden";
-    // depurar
-    // die($sql);
-    // ejecutar sentencia SQL
-    $result = $conex->query($sql);
-    // controlar existencia de datos
-    if ($result->num_rows == 0) {
-        // mostrar error
-        header("Location: errorPage.php?MSG=No existen datos para mostrar");
-    } // endif
+// Crear sentencia SQL
+$sql = "SELECT productos.idP, productos.marca, productos.descripcion, productos.origen, productos.precio, categoria.nombre ";
+$sql .= "FROM productos ";
+$sql .= "JOIN categoria ";
+$sql .= "ON productos.categoria = categoria.idC ";
+if (isset($filtro)) {
+    // Agregamos filtro 
+    $sql .= " $filtro "; 
+}
+$sql .= "ORDER BY $orden";
 
-    // crear cabecera de tabla de datos
-    echo "
+// Ejecutar sentencia SQL
+$result = $conex->query($sql);
+
+// Controlar existencia de datos
+if (!$result || $result->num_rows == 0) {
+    // Mostrar mensaje de error o redireccionar a una página de error
+    die("Error en la consulta o no hay datos para mostrar");
+}
+
+// Crear cabecera de tabla de datos
+echo "
+    <table class='table table-responsive table-striped table-bordered table-hover' id='lst'>
         <thead class='thead-inverse'>
             <tr>
                 <th>
@@ -100,70 +84,34 @@
             </tr> 
         </thead>       
     ";
-    // die($sql);        
-    $fila = 1;  // contador de filas
-    while ($reg = $result->fetch_array(MYSQLI_ASSOC)) {
-        // convertir caracteres
-        $marca = utf8_encode($reg["marca"]);
-        $descripcion = utf8_encode($reg["descripcion"]);
-        $origen = utf8_encode($reg["origen"]);
-        $categoria = utf8_encode($reg["nombre"]);     
 
-        // determinar fila par/impar
-        $resto = $fila % 2;
-        if ($resto == 0) {
-            // crear fila de datos PAR
-            echo "<tr class='filaPAR'>\n";                
-        } else {
-            // crear fila de datos IMPAR
-            echo "<tr class='filaIMP'>\n";                
-        } // endif
-        echo " <td>$reg[idP]</td>\n"; // id            
-        echo " <td>$marca</td>\n";   // marca
-        echo " <td>$descripcion</td>\n";  
-        echo " <td>$origen</td>\n";   // origen
-        echo " <td>$ $reg[precio]</td>\n"; // precio
-        echo " <td>$categoria</td>\n"; // departamento
-        echo "</tr>\n"; 
-        // incrementar número de fila
-        $fila++;                                               
-    } // end while (siguiente registro)
-    // liberar resultado y cerrar conexión
-    $result->free();
-    $conex->close();
+// Recorrer los resultados y mostrar en la tabla
+while ($reg = $result->fetch_array(MYSQLI_ASSOC)) {
+    $marca = utf8_encode($reg["marca"]);
+    $descripcion = utf8_encode($reg["descripcion"]);
+    $origen = utf8_encode($reg["origen"]);
+    $categoria = utf8_encode($reg["nombre"]);     
+
+    // Determinar fila par/impar
+    $fila = ($fila % 2 == 0) ? 'filaPAR' : 'filaIMP';
+
+    echo "<tr class='$fila'>\n";                
+    echo " <td>$reg[idP]</td>\n"; // ID            
+    echo " <td>$marca</td>\n";   // Marca
+    echo " <td>$descripcion</td>\n";  
+    echo " <td>$origen</td>\n";   // Origen
+    echo " <td>$ $reg[precio]</td>\n"; // Precio
+    echo " <td>$categoria</td>\n"; // Categoría
+    echo "</tr>\n"; 
+
+    $fila++; // Incrementar número de fila
+}
+
+// Liberar resultado y cerrar conexión
+$result->free();
+$conex->close();
 ?>
-      
-      </table>
-							</div>
-						</div>
-					</div>
-				</article>
-	</section><!-- Termina Jumbotron Introducción-->
 
- 
- 
-
-			 
-
-
-
-
-
-
-
-</main>	
-
-
-
-
-
-
-
-
-
-<!--Sripts de bootstrap  y jquery  -->
-<script type="text/javascript" src="js/jquery.min.js"></script>
-<script type="text/javascript" src="js/bootstrap.min.js"></script>
-<script type="text/javascript" src="js/app.js"></script>
+</table>
 </body>
 </html>

@@ -1,6 +1,6 @@
 <?php   
     // conectar al servidor de BD
-    $conex = mysqli_connect("localhost", "root", "", "webmarket");
+    $conex = mysqli_connect("localhost", "id21052904_vdevane", "Jacob331987.", "id21052904_vdevane");
     // controlar conexión
     if (!$conex) {
         header("Location: errorPage.php?MSG=NO se pudo CONECTAR al SERVIDOR de Base de Datos");
